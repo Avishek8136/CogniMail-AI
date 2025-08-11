@@ -87,6 +87,10 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+# Sensitive data
+data/google_token.pickle
+data/google_credentials.json
+
 # Backup files
 *.bak
 *.tmp
