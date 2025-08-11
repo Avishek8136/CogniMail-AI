@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="1200" height="900" xmlns="http://www.w3.org/2000/svg">
+    <!-- Styles -->
+    <defs>
+        <style type="text/css">
+            .component { fill: #f0f8ff; stroke: #4682b4; stroke-width: 2; stroke-dasharray: 5,5; }
+            .api { fill: #e6f3ff; stroke: #1e90ff; stroke-width: 2; }
+            .database { fill: #f0fff0; stroke: #228b22; stroke-width: 2; }
+            .security { fill: #fff0f0; stroke: #b22222; stroke-width: 2; }
+            .subprocess { fill: #fff8f0; stroke: #d2691e; stroke-width: 2; }
+            .text { font-family: Arial; font-size: 14px; fill: #333333; }
+            .smalltext { font-family: Arial; font-size: 12px; fill: #666666; }
+            .arrow { stroke: #666666; stroke-width: 2; marker-end: url(#arrowhead); }
+            .title { font-family: Arial; font-size: 24px; font-weight: bold; fill: #333333; }
+            .subtitle { font-family: Arial; font-size: 16px; fill: #666666; }
+        </style>
+        <!-- Arrow marker definition -->
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#666666"/>
+        </marker>
+    </defs>
+
+    <!-- Title -->
+    <text x="400" y="50" class="title">CogniMail-AI Detailed Architecture</text>
+    <text x="380" y="80" class="subtitle">Email and Calendar Management System with AI Integration</text>
+
+    <!-- User Interface Layer -->
+    <rect x="50" y="120" width="200" height="100" rx="10" class="component"/>
+    <text x="90" y="145" class="text">Command Line Interface</text>
+    <text x="70" y="165" class="smalltext">- Natural Language Commands</text>
+    <text x="70" y="185" class="smalltext">- Interactive Responses</text>
+    <text x="70" y="205" class="smalltext">- Command History</text>
+
+    <!-- AI Processing Core -->
+    <rect x="350" y="120" width="200" height="180" rx="10" class="component"/>
+    <text x="400" y="145" class="text">AI Processing Core</text>
+    <text x="360" y="165" class="smalltext">- Command Understanding</text>
+    <text x="360" y="185" class="smalltext">- Context Management</text>
+    <text x="360" y="205" class="smalltext">- Response Generation</text>
+    <text x="360" y="225" class="smalltext">- Task Scheduling</text>
+    <text x="360" y="245" class="smalltext">- Priority Management</text>
+    <text x="360" y="265" class="smalltext">- Smart Suggestions</text>
+
+    <!-- NLP Engine -->
+    <rect x="650" y="120" width="200" height="140" rx="10" class="component"/>
+    <text x="680" y="145" class="text">NLP Engine</text>
+    <text x="660" y="165" class="smalltext">- Intent Recognition</text>
+    <text x="660" y="185" class="smalltext">- Entity Extraction</text>
+    <text x="660" y="205" class="smalltext">- Sentiment Analysis</text>
+    <text x="660" y="225" class="smalltext">- Language Understanding</text>
+
+    <!-- Email Management -->
+    <rect x="50" y="350" width="200" height="140" rx="10" class="subprocess"/>
+    <text x="90" y="375" class="text">Email Management</text>
+    <text x="60" y="395" class="smalltext">- Smart Categorization</text>
+    <text x="60" y="415" class="smalltext">- Auto-Response</text>
+    <text x="60" y="435" class="smalltext">- Priority Inbox</text>
+    <text x="60" y="455" class="smalltext">- Thread Management</text>
+
+    <!-- Calendar Management -->
+    <rect x="350" y="350" width="200" height="140" rx="10" class="subprocess"/>
+    <text x="380" y="375" class="text">Calendar Management</text>
+    <text x="360" y="395" class="smalltext">- Event Scheduling</text>
+    <text x="360" y="415" class="smalltext">- Conflict Resolution</text>
+    <text x="360" y="435" class="smalltext">- Availability Check</text>
+    <text x="360" y="455" class="smalltext">- Reminder System</text>
+
+    <!-- External APIs -->
+    <rect x="650" y="350" width="200" height="140" rx="10" class="api"/>
+    <text x="700" y="375" class="text">Google APIs</text>
+    <text x="660" y="395" class="smalltext">- Gmail API</text>
+    <text x="660" y="415" class="smalltext">- Calendar API</text>
+    <text x="660" y="435" class="smalltext">- People API</text>
+    <text x="660" y="455" class="smalltext">- Drive API</text>
+
+    <!-- Security Layer -->
+    <rect x="350" y="540" width="500" height="100" rx="10" class="security"/>
+    <text x="540" y="575" class="text">Security Layer</text>
+    <text x="370" y="595" class="smalltext">- OAuth 2.0 Authentication</text>
+    <text x="510" y="595" class="smalltext">- Token Management</text>
+    <text x="650" y="595" class="smalltext">- Encryption</text>
+    <text x="770" y="595" class="smalltext">- Secure Storage</text>
+
+    <!-- Data Storage -->
+    <rect x="50" y="540" width="200" height="100" rx="10" class="database"/>
+    <text x="100" y="575" class="text">Local Storage</text>
+    <text x="60" y="595" class="smalltext">- Credentials</text>
+    <text x="60" y="615" class="smalltext">- User Preferences</text>
+    <text x="60" y="635" class="smalltext">- Cache</text>
+
+    <!-- Connections -->
+    <!-- UI to AI Core -->
+    <path d="M 250 170 L 350 170" class="arrow"/>
+    
+    <!-- AI Core to NLP -->
+    <path d="M 550 170 L 650 170" class="arrow"/>
+    
+    <!-- AI Core to Email Management -->
+    <path d="M 450 300 C 450 320, 150 320, 150 350" class="arrow"/>
+    
+    <!-- AI Core to Calendar Management -->
+    <path d="M 450 300 L 450 350" class="arrow"/>
+    
+    <!-- Email Management to APIs -->
+    <path d="M 250 420 C 400 420, 500 420, 650 420" class="arrow"/>
+    
+    <!-- Calendar Management to APIs -->
+    <path d="M 550 420 C 580 420, 600 420, 650 420" class="arrow"/>
+    
+    <!-- APIs to Security Layer -->
+    <path d="M 750 490 C 750 510, 600 510, 600 540" class="arrow"/>
+    
+    <!-- Storage to Security -->
+    <path d="M 250 590 C 280 590, 320 590, 350 590" class="arrow"/>
+
+    <!-- Legend -->
+    <rect x="950" y="120" width="20" height="20" class="component"/>
+    <text x="980" y="135" class="text">Core Components</text>
+
+    <rect x="950" y="150" width="20" height="20" class="subprocess"/>
+    <text x="980" y="165" class="text">Processing Units</text>
+
+    <rect x="950" y="180" width="20" height="20" class="api"/>
+    <text x="980" y="195" class="text">External APIs</text>
+
+    <rect x="950" y="210" width="20" height="20" class="security"/>
+    <text x="980" y="225" class="text">Security Components</text>
+
+    <rect x="950" y="240" width="20" height="20" class="database"/>
+    <text x="980" y="255" class="text">Storage</text>
+
+    <!-- Additional Features -->
+    <rect x="900" y="350" width="250" height="140" rx="10" class="component"/>
+    <text x="950" y="375" class="text">Additional Features</text>
+    <text x="910" y="395" class="smalltext">- Smart Email Templates</text>
+    <text x="910" y="415" class="smalltext">- Meeting Analytics</text>
+    <text x="910" y="435" class="smalltext">- Time Management Insights</text>
+    <text x="910" y="455" class="smalltext">- Task Prioritization</text>
+</svg>
