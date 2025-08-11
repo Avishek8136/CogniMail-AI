@@ -91,3 +91,4 @@ db.sqlite3-journal
 *.bak
 *.tmp
 *~
+test_auth.py
