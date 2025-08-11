@@ -1,8 +1,8 @@
-# AI Email Manager
+# CogniMail AI
 
 An intelligent email management system that uses Google's Gemma-3 AI model to automatically triage, categorize, and process your Gmail inbox. This project implements a phased approach to building a sophisticated, user-trusted email automation system.
 
-## 🌟 Features (Phase 1)
+## 🌟 Features
 
 ### Core AI Intelligence
 - **Smart Email Triage**: Automatically classify emails by urgency (Urgent, To Respond, FYI, Meeting, Spam)
