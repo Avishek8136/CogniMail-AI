@@ -1,0 +1,27 @@
+# AI and Google API dependencies
+google-generativeai>=0.8.0
+google-auth>=2.22.0
+google-auth-oauthlib>=1.0.0
+google-auth-httplib2>=0.1.0
+google-api-python-client>=2.100.0
+
+# GUI Framework
+customtkinter>=5.2.0
+Pillow>=10.0.0
+
+# Data handling and utilities
+pandas>=2.0.0
+python-dateutil>=2.8.0
+pytz>=2023.3
+
+# Configuration and environment
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+
+# Logging and debugging
+loguru>=0.7.0
+
+# Development tools
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0
