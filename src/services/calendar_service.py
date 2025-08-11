@@ -222,7 +222,8 @@ class CalendarService:
     def create_event(self, title: str, start_time: datetime, end_time: datetime,
                     description: str = "", location: str = "", 
                     attendees: List[str] = None, 
-                    send_updates: str = "all") -> Optional[str]:
+                    send_updates: str = "all",
+                    timezone: str = None) -> Optional[str]:
         """
         Create a calendar event.
         
@@ -234,6 +235,7 @@ class CalendarService:
             location: Event location
             attendees: List of attendee emails
             send_updates: Whether to send calendar invites ('all', 'externalOnly', 'none')
+            timezone: Optional timezone (e.g., 'America/New_York', 'Asia/Kolkata')
             
         Returns:
             Event ID if successful, None otherwise
@@ -241,17 +243,35 @@ class CalendarService:
         try:
             service = self.get_calendar_service()
             
+            # Get local timezone
+            import tzlocal
+            local_tz = tzlocal.get_localzone()
+            
+            # Ensure datetime objects are timezone-aware
+            def ensure_timezone(dt: datetime) -> datetime:
+                if dt.tzinfo is None:
+                    return local_tz.localize(dt)
+                return dt
+            
+            start_time = ensure_timezone(start_time)
+            end_time = ensure_timezone(end_time)
+            
+            # Use system timezone if none provided
+            if not timezone:
+                import tzlocal
+                timezone = str(tzlocal.get_localzone())
+            
             # Prepare event data
             event_body = {
                 'summary': title,
                 'description': description,
                 'start': {
                     'dateTime': start_time.isoformat(),
-                    'timeZone': 'America/New_York',  # Default timezone
+                    'timeZone': timezone,
                 },
                 'end': {
                     'dateTime': end_time.isoformat(),
-                    'timeZone': 'America/New_York',
+                    'timeZone': timezone,
                 },
                 'location': location,
                 'attendees': [{'email': email} for email in (attendees or [])],
@@ -262,18 +282,36 @@ class CalendarService:
                         {'method': 'popup', 'minutes': 10},       # 10 minutes before
                     ],
                 },
+                'transparency': 'opaque',  # Show as busy
+                'visibility': 'default',   # Default visibility
             }
             
-            # Create the event
-            event = service.events().insert(
-                calendarId='primary',
-                body=event_body,
-                sendUpdates=send_updates
-            ).execute()
+            # Validate times
+            if end_time <= start_time:
+                logger.error("End time must be after start time")
+                return None
             
-            event_id = event.get('id')
-            logger.info(f"Created calendar event: {event_id}")
-            return event_id
+            # Create the event
+            try:
+                event = service.events().insert(
+                    calendarId='primary',
+                    body=event_body,
+                    sendUpdates=send_updates,
+                    conferenceDataVersion=1  # Enable meet link creation if available
+                ).execute()
+                
+                event_id = event.get('id')
+                logger.info(f"Created calendar event: {event_id} ({title})")
+                return event_id
+                
+            except HttpError as he:
+                if he.resp.status == 403:
+                    logger.error("Permission denied. Please check calendar access permissions.")
+                elif he.resp.status == 400:
+                    logger.error(f"Invalid request: {he.content}")
+                else:
+                    logger.error(f"Calendar API error: {he.resp.status} - {he.content}")
+                return None
             
         except HttpError as e:
             logger.error(f"Calendar API error creating event: {e}")
@@ -385,14 +423,18 @@ class CalendarService:
         Returns:
             List of conflicting CalendarEvent objects
         """
+        if not self.auth_service.is_authenticated():
+            logger.error("Not authenticated. Please authenticate first.")
+            return []
+            
         try:
             service = self.get_calendar_service()
             
-            # Fetch events in the time range
+            # Get upcoming events
             events_result = service.events().list(
                 calendarId='primary',
-                timeMin=start_time.isoformat(),
-                timeMax=end_time.isoformat(),
+                timeMin=now.isoformat(),
+                timeMax=time_max.isoformat(),
                 singleEvents=True,
                 orderBy='startTime'
             ).execute()

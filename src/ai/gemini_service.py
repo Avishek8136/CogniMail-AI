@@ -7,6 +7,7 @@ import json
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from datetime import datetime
 import google.generativeai as genai
 from loguru import logger
 
@@ -632,7 +633,68 @@ Provide analysis for ALL {len(batch_emails)} emails in the same order they appea
             elif response_text.startswith('```'):
                 response_text = response_text[3:-3].strip()
             
-            return json.loads(response_text)
+            data = json.loads(response_text)
+            
+            # Ensure critical fields have values
+            result = {
+                'title': data.get('title') or 'Untitled Meeting',
+                'date': data.get('date'),
+                'time': data.get('time'),
+                'duration': self._parse_duration(data.get('duration')),
+                'location': data.get('location'),
+                'participants': data.get('participants', []),
+                'agenda_items': data.get('agenda_items', []),
+                'is_meeting_request': data.get('is_meeting_request', False),
+                'requires_response': data.get('requires_response', True)
+            }
+            
+            # Validate date and time format
+            if result['date']:
+                try:
+                    # Verify date format
+                    datetime.strptime(result['date'], '%Y-%m-%d')
+                except ValueError:
+                    logger.warning(f"Invalid date format: {result['date']}")
+                    result['date'] = None
+            
+            if result['time']:
+                try:
+                    # Verify time format
+                    datetime.strptime(result['time'], '%H:%M')
+                except ValueError:
+                    logger.warning(f"Invalid time format: {result['time']}")
+                    result['time'] = None
+            
+            return result
+            
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse meeting details response: {e}")
             return {"error": "Failed to parse meeting details"}
+            
+    def _parse_duration(self, duration: str) -> Optional[int]:
+        """Parse duration string into minutes."""
+        if not duration:
+            return 60  # Default to 1 hour
+            
+        try:
+            # If it's already a number string
+            return int(duration)
+        except ValueError:
+            pass
+        
+        try:
+            # Try to parse duration description
+            duration = duration.lower().strip()
+            if 'hour' in duration:
+                hours = float(duration.split()[0])
+                return int(hours * 60)
+            elif 'min' in duration:
+                return int(duration.split()[0])
+            elif 'day' in duration:
+                return int(float(duration.split()[0]) * 24 * 60)
+            else:
+                logger.warning(f"Unparseable duration format: {duration}")
+                return 60  # Default to 1 hour
+        except Exception as e:
+            logger.error(f"Error parsing duration: {e}")
+            return 60  # Default to 1 hour
