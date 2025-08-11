@@ -55,7 +55,16 @@ class EmailManagerApp:
         self.is_authenticated = False
         self.is_loading = False
         
-        # Setup GUI
+        # Setup GUI components
+        self.root = ctk.CTk()
+        self.root.title("CogniMail AI - Intelligent Inbox Dashboard")
+        self.root.geometry("1400x900")
+        self.root.minsize(1200, 800)
+        
+        # Create status bar first
+        self.setup_status_bar()
+        
+        # Setup rest of GUI
         self.setup_gui()
         
         # Check if this is a first run and show welcome wizard if needed
@@ -280,6 +289,10 @@ class EmailManagerApp:
         # Actions tab
         self.actions_tab = self.details_tabview.add("Actions")
         self.setup_actions_tab()
+        
+        # Calendar tab
+        self.calendar_tab = self.details_tabview.add("Calendar")
+        self.setup_calendar_tab()
     
     def setup_content_tab(self):
         """Setup the email content display tab."""
@@ -479,6 +492,1087 @@ class EmailManagerApp:
             font=ctk.CTkFont(size=11)
         )
         self.action_textbox.pack(fill="x", padx=15, pady=(0, 15))
+    
+    def setup_calendar_tab(self):
+        """Setup the calendar management and scheduling tab."""
+        from ..services.smart_scheduler import get_smart_scheduler
+        self.smart_scheduler = get_smart_scheduler()
+
+        # Calendar header
+        header_frame = ctk.CTkFrame(self.calendar_tab)
+        header_frame.pack(fill="x", pady=(15, 10))
+        
+        ctk.CTkLabel(
+            header_frame,
+            text="📅 Smart Calendar Management",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(side="left", padx=15)
+        
+        # Refresh button
+        refresh_btn = ctk.CTkButton(
+            header_frame,
+            text="🔄 Refresh",
+            command=self.refresh_calendar,
+            width=100,
+            height=32
+        )
+        refresh_btn.pack(side="right", padx=15)
+        
+        # Main calendar content
+        content_frame = ctk.CTkFrame(self.calendar_tab)
+        content_frame.pack(fill="both", expand=True, padx=15, pady=(0, 15))
+        
+        # Left side: Calendar and conflicts
+        left_frame = ctk.CTkFrame(content_frame)
+        left_frame.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        
+        # Upcoming events section
+        events_label = ctk.CTkLabel(
+            left_frame,
+            text="Upcoming Events",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        events_label.pack(anchor="w", padx=15, pady=(10, 5))
+        
+        self.events_list = ctk.CTkTextbox(
+            left_frame,
+            height=200,
+            font=ctk.CTkFont(size=12)
+        )
+        self.events_list.pack(fill="both", expand=True, padx=15, pady=(0, 10))
+        
+        # Right side: Optimization suggestions
+        right_frame = ctk.CTkFrame(content_frame)
+        right_frame.pack(side="right", fill="both", expand=True, padx=(5, 0))
+        
+        suggestions_label = ctk.CTkLabel(
+            right_frame,
+            text="Schedule Optimization",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        suggestions_label.pack(anchor="w", padx=15, pady=(10, 5))
+        
+        self.suggestions_list = ctk.CTkTextbox(
+            right_frame,
+            height=200,
+            font=ctk.CTkFont(size=12)
+        )
+        self.suggestions_list.pack(fill="both", expand=True, padx=15, pady=(0, 10))
+        
+        # Scheduling tools
+        tools_frame = ctk.CTkFrame(self.calendar_tab)
+        tools_frame.pack(fill="x", padx=15, pady=(0, 15))
+        
+        ctk.CTkLabel(
+            tools_frame,
+            text="Scheduling Tools",
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).pack(anchor="w", pady=(10, 5))
+        
+        # Tool buttons
+        buttons_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+        buttons_frame.pack(fill="x", pady=(0, 10))
+        
+        # Add new meeting button
+        new_meeting_btn = ctk.CTkButton(
+            buttons_frame,
+            text="📅 New Meeting",
+            command=self.create_new_meeting,
+            width=120,
+            height=32,
+            fg_color="#2E8B57",  # Green color
+            hover_color="#3CB371"
+        )
+        new_meeting_btn.pack(side="left", padx=(0, 10))
+        
+        resolve_btn = ctk.CTkButton(
+            buttons_frame,
+            text="🤝 Resolve Conflicts",
+            command=self.resolve_calendar_conflicts,
+            width=150,
+            height=32
+        )
+        resolve_btn.pack(side="left", padx=(0, 10))
+        
+        optimize_btn = ctk.CTkButton(
+            buttons_frame,
+            text="✨ Optimize Schedule",
+            command=self.optimize_calendar_schedule,
+            width=150,
+            height=32
+        )
+        optimize_btn.pack(side="left", padx=(0, 10))
+        
+        suggest_btn = ctk.CTkButton(
+            buttons_frame,
+            text="💡 Suggest Times",
+            command=self.suggest_meeting_times,
+            width=120,
+            height=32
+        )
+        suggest_btn.pack(side="left")
+
+        # Update calendar later after authentication
+        if self.is_authenticated:
+            self.refresh_calendar()
+        
+    def edit_meeting(self, event):
+        """Show dialog to edit an existing meeting."""
+        # Create edit window
+        edit_window = ctk.CTkToplevel(self.root)
+        edit_window.title("Edit Meeting")
+        edit_window.geometry("600x700")
+        edit_window.transient(self.root)
+        edit_window.grab_set()
+        
+        # Main frame
+        main_frame = ctk.CTkFrame(edit_window)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Title
+        title_label = ctk.CTkLabel(
+            main_frame,
+            text="✏️ Edit Meeting",
+            font=ctk.CTkFont(size=18, weight="bold")
+        )
+        title_label.pack(pady=(10, 20))
+        
+        # Meeting details form
+        form_frame = ctk.CTkFrame(main_frame)
+        form_frame.pack(fill="x", pady=(0, 20))
+        
+        # Title field
+        title_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        title_frame.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(
+            title_frame,
+            text="Title:",
+            font=ctk.CTkFont(weight="bold"),
+            width=100
+        ).pack(side="left")
+        
+        title_entry = ctk.CTkEntry(
+            title_frame,
+            width=400
+        )
+        title_entry.pack(side="left", padx=(10, 0), fill="x", expand=True)
+        title_entry.insert(0, event.title)
+        
+        # Date field
+        date_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        date_frame.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(
+            date_frame,
+            text="Date:",
+            font=ctk.CTkFont(weight="bold"),
+            width=100
+        ).pack(side="left")
+        
+        date_entry = ctk.CTkEntry(
+            date_frame,
+            placeholder_text="YYYY-MM-DD",
+            width=150
+        )
+        date_entry.pack(side="left", padx=(10, 0))
+        date_entry.insert(0, event.start_time.strftime("%Y-%m-%d"))
+        
+        # Time fields
+        time_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        time_frame.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(
+            time_frame,
+            text="Time:",
+            font=ctk.CTkFont(weight="bold"),
+            width=100
+        ).pack(side="left")
+        
+        start_time_entry = ctk.CTkEntry(
+            time_frame,
+            placeholder_text="HH:MM",
+            width=100
+        )
+        start_time_entry.pack(side="left", padx=(10, 5))
+        start_time_entry.insert(0, event.start_time.strftime("%H:%M"))
+        
+        ctk.CTkLabel(
+            time_frame,
+            text="to",
+            width=30
+        ).pack(side="left")
+        
+        end_time_entry = ctk.CTkEntry(
+            time_frame,
+            placeholder_text="HH:MM",
+            width=100
+        )
+        end_time_entry.pack(side="left", padx=(5, 0))
+        end_time_entry.insert(0, event.end_time.strftime("%H:%M"))
+        
+        # Location
+        location_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        location_frame.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(
+            location_frame,
+            text="Location:",
+            font=ctk.CTkFont(weight="bold"),
+            width=100
+        ).pack(side="left")
+        
+        location_entry = ctk.CTkEntry(
+            location_frame,
+            width=400
+        )
+        location_entry.pack(side="left", padx=(10, 0), fill="x", expand=True)
+        if event.location:
+            location_entry.insert(0, event.location)
+        
+        # Description
+        desc_label = ctk.CTkLabel(
+            form_frame,
+            text="Description:",
+            font=ctk.CTkFont(weight="bold")
+        )
+        desc_label.pack(anchor="w", pady=(10, 5))
+        
+        description_text = ctk.CTkTextbox(
+            form_frame,
+            height=100
+        )
+        description_text.pack(fill="x", pady=(0, 10))
+        if event.description:
+            description_text.insert("1.0", event.description)
+        
+        # Attendees
+        attendees_label = ctk.CTkLabel(
+            form_frame,
+            text="Attendees (one email per line):",
+            font=ctk.CTkFont(weight="bold")
+        )
+        attendees_label.pack(anchor="w", pady=(10, 5))
+        
+        attendees_text = ctk.CTkTextbox(
+            form_frame,
+            height=100
+        )
+        attendees_text.pack(fill="x", pady=(0, 10))
+        if event.attendees:
+            attendees_text.insert("1.0", "\n".join(event.attendees))
+        
+        # Meeting options
+        options_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        options_frame.pack(fill="x", pady=10)
+        
+        send_updates = tk.BooleanVar(value=True)
+        update_checkbox = ctk.CTkCheckBox(
+            options_frame,
+            text="Send update to attendees",
+            variable=send_updates
+        )
+        update_checkbox.pack(side="left")
+        
+        # Action buttons
+        buttons_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        buttons_frame.pack(fill="x", pady=(20, 0))
+        
+        def save_changes():
+            try:
+                # Get form values
+                title = title_entry.get().strip()
+                date = date_entry.get().strip()
+                start_time = start_time_entry.get().strip()
+                end_time = end_time_entry.get().strip()
+                location = location_entry.get().strip()
+                description = description_text.get("1.0", "end").strip()
+                attendees = [
+                    email.strip() 
+                    for email in attendees_text.get("1.0", "end").strip().split('\n')
+                    if email.strip()
+                ]
+                
+                # Validate required fields
+                if not title:
+                    messagebox.showerror("Error", "Please enter a meeting title.")
+                    return
+                if not date:
+                    messagebox.showerror("Error", "Please enter a meeting date.")
+                    return
+                if not start_time:
+                    messagebox.showerror("Error", "Please enter a start time.")
+                    return
+                if not end_time:
+                    messagebox.showerror("Error", "Please enter an end time.")
+                    return
+                
+                try:
+                    # Parse date and time
+                    start_dt = datetime.strptime(f"{date} {start_time}", "%Y-%m-%d %H:%M")
+                    end_dt = datetime.strptime(f"{date} {end_time}", "%Y-%m-%d %H:%M")
+                    
+                    if end_dt <= start_dt:
+                        messagebox.showerror("Error", "End time must be after start time.")
+                        return
+                    
+                except ValueError:
+                    messagebox.showerror("Error", "Invalid date or time format.")
+                    return
+                
+                # Update the event
+                success = self.smart_scheduler.calendar_service.update_event(
+                    event_id=event.id,
+                    title=title,
+                    start_time=start_dt,
+                    end_time=end_dt,
+                    description=description,
+                    location=location,
+                    attendees=attendees,
+                    send_updates="all" if send_updates.get() else "none"
+                )
+                
+                if success:
+                    messagebox.showinfo(
+                        "Success",
+                        "Meeting updated successfully!"
+                    )
+                    edit_window.destroy()
+                    self.refresh_calendar()
+                else:
+                    messagebox.showerror(
+                        "Error",
+                        "Failed to update meeting. Please try again."
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Error updating meeting: {e}")
+                messagebox.showerror(
+                    "Error",
+                    f"Failed to update meeting: {str(e)}"
+                )
+        
+        # Save button
+        save_btn = ctk.CTkButton(
+            buttons_frame,
+            text="💾 Save Changes",
+            command=save_changes,
+            width=150,
+            height=32,
+            fg_color="#2E8B57",
+            hover_color="#3CB371"
+        )
+        save_btn.pack(side="left")
+        
+        # Cancel button
+        cancel_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Cancel",
+            command=edit_window.destroy,
+            width=100,
+            height=32
+        )
+        cancel_btn.pack(side="right")
+    
+    def delete_meeting(self, event):
+        """Delete a meeting and optionally notify attendees."""
+        # Confirm deletion
+        if not messagebox.askyesno(
+            "Confirm Delete",
+            f"Are you sure you want to delete this meeting?\n\nTitle: {event.title}\nDate: {event.start_time.strftime('%Y-%m-%d %H:%M')}"
+        ):
+            return
+        
+        # Ask about notifying attendees
+        notify = True
+        if event.attendees:
+            notify = messagebox.askyesno(
+                "Notify Attendees",
+                "Would you like to notify the attendees about the cancellation?"
+            )
+        
+        try:
+            # Delete the event
+            success = self.smart_scheduler.calendar_service.delete_event(
+                event_id=event.id,
+                send_updates="all" if notify else "none"
+            )
+            
+            if success:
+                messagebox.showinfo(
+                    "Success",
+                    "Meeting deleted successfully!"
+                )
+                self.refresh_calendar()
+            else:
+                messagebox.showerror(
+                    "Error",
+                    "Failed to delete meeting. Please try again."
+                )
+                
+        except Exception as e:
+            logger.error(f"Error deleting meeting: {e}")
+            messagebox.showerror(
+                "Error",
+                f"Failed to delete meeting: {str(e)}"
+            )
+        
+        # Calendar header
+        header_frame = ctk.CTkFrame(self.calendar_tab)
+        header_frame.pack(fill="x", pady=(15, 10))
+        
+        ctk.CTkLabel(
+            header_frame,
+            text="📅 Smart Calendar Management",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(side="left", padx=15)
+        
+        # Refresh button
+        refresh_btn = ctk.CTkButton(
+            header_frame,
+            text="🔄 Refresh",
+            command=self.refresh_calendar,
+            width=100,
+            height=32
+        )
+        refresh_btn.pack(side="right", padx=15)
+        
+        # Main calendar content
+        content_frame = ctk.CTkFrame(self.calendar_tab)
+        content_frame.pack(fill="both", expand=True, padx=15, pady=(0, 15))
+        
+        # Left side: Calendar and conflicts
+        left_frame = ctk.CTkFrame(content_frame)
+        left_frame.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        
+        # Upcoming events section
+        events_label = ctk.CTkLabel(
+            left_frame,
+            text="Upcoming Events",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        events_label.pack(anchor="w", padx=15, pady=(10, 5))
+        
+        self.events_list = ctk.CTkTextbox(
+            left_frame,
+            height=200,
+            font=ctk.CTkFont(size=12)
+        )
+        self.events_list.pack(fill="both", expand=True, padx=15, pady=(0, 10))
+        
+        # Right side: Optimization suggestions
+        right_frame = ctk.CTkFrame(content_frame)
+        right_frame.pack(side="right", fill="both", expand=True, padx=(5, 0))
+        
+        suggestions_label = ctk.CTkLabel(
+            right_frame,
+            text="Schedule Optimization",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        suggestions_label.pack(anchor="w", padx=15, pady=(10, 5))
+        
+        self.suggestions_list = ctk.CTkTextbox(
+            right_frame,
+            height=200,
+            font=ctk.CTkFont(size=12)
+        )
+        self.suggestions_list.pack(fill="both", expand=True, padx=15, pady=(0, 10))
+        
+        # Scheduling tools
+        tools_frame = ctk.CTkFrame(self.calendar_tab)
+        tools_frame.pack(fill="x", padx=15, pady=(0, 15))
+        
+        ctk.CTkLabel(
+            tools_frame,
+            text="Scheduling Tools",
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).pack(anchor="w", pady=(10, 5))
+        
+        # Tool buttons
+        buttons_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+        buttons_frame.pack(fill="x", pady=(0, 10))
+        
+        # Add new meeting button
+        new_meeting_btn = ctk.CTkButton(
+            buttons_frame,
+            text="📅 New Meeting",
+            command=self.create_new_meeting,
+            width=120,
+            height=32,
+            fg_color="#2E8B57",  # Green color
+            hover_color="#3CB371"
+        )
+        new_meeting_btn.pack(side="left", padx=(0, 10))
+        
+        resolve_btn = ctk.CTkButton(
+            buttons_frame,
+            text="🤝 Resolve Conflicts",
+            command=self.resolve_calendar_conflicts,
+            width=150,
+            height=32
+        )
+        resolve_btn.pack(side="left", padx=(0, 10))
+        
+        optimize_btn = ctk.CTkButton(
+            buttons_frame,
+            text="✨ Optimize Schedule",
+            command=self.optimize_calendar_schedule,
+            width=150,
+            height=32
+        )
+        optimize_btn.pack(side="left", padx=(0, 10))
+        
+        suggest_btn = ctk.CTkButton(
+            buttons_frame,
+            text="💡 Suggest Times",
+            command=self.suggest_meeting_times,
+            width=120,
+            height=32
+        )
+        suggest_btn.pack(side="left")
+    
+    def refresh_calendar(self):
+        """Refresh calendar data and update display."""
+        try:
+            # Check authentication first
+            if not self.is_authenticated:
+                self.events_list.delete("1.0", "end")
+                self.events_list.insert("end", "Please authenticate first to view calendar events.\n")
+                self.suggestions_list.delete("1.0", "end")
+                self.suggestions_list.insert("end", "Calendar access not available until authenticated.\n")
+                return
+
+            # Get upcoming events
+            events = self.smart_scheduler.calendar_service.get_upcoming_events()
+            
+            # Clear and update events list
+            self.events_list.delete("1.0", "end")
+            if events:
+                for event in events:
+                    # Create event frame with buttons
+                    event_frame = ctk.CTkFrame(self.events_list)
+                    event_frame.pack(fill="x", padx=5, pady=5)
+                    
+                    # Format date/time
+                    start_time = event.start_time.strftime("%Y-%m-%d %H:%M")
+                    end_time = event.end_time.strftime("%H:%M")
+                    
+                    # Event details
+                    details_frame = ctk.CTkFrame(event_frame, fg_color="transparent")
+                    details_frame.pack(fill="x", padx=10, pady=5)
+                    
+                    # Title with edit/delete buttons
+                    title_frame = ctk.CTkFrame(details_frame, fg_color="transparent")
+                    title_frame.pack(fill="x")
+                    
+                    title_label = ctk.CTkLabel(
+                        title_frame,
+                        text=f"📌 {event.title}",
+                        font=ctk.CTkFont(size=12, weight="bold")
+                    )
+                    title_label.pack(side="left")
+                    
+                    # Button frame
+                    btn_frame = ctk.CTkFrame(title_frame, fg_color="transparent")
+                    btn_frame.pack(side="right")
+                    
+                    # Edit button
+                    edit_btn = ctk.CTkButton(
+                        btn_frame,
+                        text="✏️",
+                        command=lambda e=event: self.edit_meeting(e),
+                        width=30,
+                        height=24,
+                        font=ctk.CTkFont(size=12)
+                    )
+                    edit_btn.pack(side="left", padx=2)
+                    
+                    # Delete button
+                    delete_btn = ctk.CTkButton(
+                        btn_frame,
+                        text="🗑️",
+                        command=lambda e=event: self.delete_meeting(e),
+                        width=30,
+                        height=24,
+                        font=ctk.CTkFont(size=12),
+                        fg_color="#DC3545",
+                        hover_color="#C82333"
+                    )
+                    delete_btn.pack(side="left", padx=2)
+                    
+                    # Time and location
+                    time_label = ctk.CTkLabel(
+                        details_frame,
+                        text=f"📅 {start_time} - {end_time}",
+                        font=ctk.CTkFont(size=11)
+                    )
+                    time_label.pack(anchor="w")
+                    
+                    if event.location:
+                        location_label = ctk.CTkLabel(
+                            details_frame,
+                            text=f"📍 {event.location}",
+                            font=ctk.CTkFont(size=11)
+                        )
+                        location_label.pack(anchor="w")
+                    
+                    if event.attendees:
+                        attendees_label = ctk.CTkLabel(
+                            details_frame,
+                            text=f"👥 {len(event.attendees)} attendees",
+                            font=ctk.CTkFont(size=11)
+                        )
+                        attendees_label.pack(anchor="w")
+            else:
+                self.events_list.insert("end", "No upcoming events found.\n")
+            
+            # Get and display optimization suggestions
+            suggestions = self.smart_scheduler.optimize_calendar(datetime.now())
+            
+            self.suggestions_list.delete("1.0", "end")
+            if suggestions:
+                for suggestion in suggestions:
+                    severity_emoji = {
+                        'high': '🔴',
+                        'medium': '🟡',
+                        'low': '🟢'
+                    }.get(suggestion['severity'], '⚪')
+                    
+                    suggestion_text = f"{severity_emoji} {suggestion['message']}\n"
+                    if suggestion.get('date'):
+                        suggestion_text += f"   📅 {suggestion['date']}\n"
+                    suggestion_text += "\n"
+                    
+                    self.suggestions_list.insert("end", suggestion_text)
+            else:
+                self.suggestions_list.insert("end", "No optimization suggestions available.\n")
+            
+            self.update_status("Calendar refreshed successfully.")
+            
+        except Exception as e:
+            logger.error(f"Error refreshing calendar: {e}")
+            messagebox.showerror("Refresh Error", f"Failed to refresh calendar: {str(e)}")
+    
+    def resolve_calendar_conflicts(self):
+        """Show conflict resolution dialog."""
+        if not hasattr(self, 'current_email_index') or self.current_email_index < 0:
+            messagebox.showwarning("No Email Selected", "Please select an email with meeting details first.")
+            return
+        
+        email_data = self.emails[self.current_email_index]
+        
+        # Extract meeting request from email
+        meeting_request = self.smart_scheduler.calendar_service.extract_meeting_from_email({
+            'subject': email_data.subject,
+            'body': email_data.body or email_data.snippet,
+            'sender': email_data.sender,
+            'date': email_data.date.isoformat()
+        })
+        
+        if not meeting_request:
+            messagebox.showwarning(
+                "No Meeting Details",
+                "Could not find meeting details in the selected email."
+            )
+            return
+        
+        # Find optimal times
+        optimal_slots = self.smart_scheduler.resolve_conflicts(meeting_request)
+        
+        if not optimal_slots:
+            messagebox.showinfo(
+                "No Available Slots",
+                "Could not find any available time slots. Consider suggesting alternative dates."
+            )
+            return
+        
+        # Show suggestions dialog
+        self.show_time_suggestions_dialog(optimal_slots, meeting_request)
+    
+    def optimize_calendar_schedule(self):
+        """Optimize the calendar schedule."""
+        try:
+            suggestions = self.smart_scheduler.optimize_calendar(datetime.now())
+            
+            if not suggestions:
+                messagebox.showinfo(
+                    "Schedule Optimized",
+                    "Your calendar schedule looks good! No optimization suggestions found."
+                )
+                return
+            
+            # Show optimization dialog
+            self.show_optimization_dialog(suggestions)
+            
+        except Exception as e:
+            logger.error(f"Error optimizing schedule: {e}")
+            messagebox.showerror("Optimization Error", f"Failed to optimize schedule: {str(e)}")
+    
+    def suggest_meeting_times(self):
+        """Show dialog to suggest meeting times."""
+        # Create suggestion window
+        suggest_window = ctk.CTkToplevel(self.root)
+        suggest_window.title("Suggest Meeting Times")
+        suggest_window.geometry("500x600")
+        suggest_window.transient(self.root)
+        suggest_window.grab_set()
+        
+        # Main frame
+        main_frame = ctk.CTkFrame(suggest_window)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Title
+        title_label = ctk.CTkLabel(
+            main_frame,
+            text="📅 Find Available Meeting Times",
+            font=ctk.CTkFont(size=18, weight="bold")
+        )
+        title_label.pack(pady=(10, 20))
+        
+        # Meeting details form
+        form_frame = ctk.CTkFrame(main_frame)
+        form_frame.pack(fill="x", pady=(0, 20))
+        
+        # Duration
+        duration_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        duration_frame.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(
+            duration_frame,
+            text="Duration (minutes):",
+            width=120
+        ).pack(side="left")
+        
+        duration_var = tk.StringVar(value="60")
+        duration_entry = ctk.CTkEntry(
+            duration_frame,
+            textvariable=duration_var,
+            width=100
+        )
+        duration_entry.pack(side="left", padx=(10, 0))
+        
+        # Attendees
+        attendees_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        attendees_frame.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(
+            attendees_frame,
+            text="Attendees (emails):",
+            width=120
+        ).pack(side="left")
+        
+        attendees_text = ctk.CTkTextbox(
+            attendees_frame,
+            height=60
+        )
+        attendees_text.pack(fill="x", padx=(10, 0))
+        
+        # Find times button
+        def find_times():
+            try:
+                duration = int(duration_var.get())
+                attendees = [
+                    email.strip()
+                    for email in attendees_text.get("1.0", "end").strip().split('\n')
+                    if email.strip()
+                ]
+                
+                if not attendees:
+                    messagebox.showwarning(
+                        "Missing Attendees",
+                        "Please enter at least one attendee email address."
+                    )
+                    return
+                
+                # Create meeting request
+                meeting = self.smart_scheduler.calendar_service.MeetingRequest(
+                    title="New Meeting",
+                    duration_minutes=duration,
+                    attendees=attendees,
+                    proposed_times=[]
+                )
+                
+                # Find optimal slots
+                optimal_slots = self.smart_scheduler.resolve_conflicts(meeting)
+                
+                if not optimal_slots:
+                    messagebox.showinfo(
+                        "No Available Slots",
+                        "Could not find any available time slots in the next 2 weeks."
+                    )
+                    return
+                
+                # Show results
+                results_text.delete("1.0", "end")
+                for i, slot in enumerate(optimal_slots, 1):
+                    slot_text = f"Option {i}:\n"
+                    slot_text += f"📅 {slot.start_time.strftime('%Y-%m-%d %H:%M')} - "
+                    slot_text += f"{slot.end_time.strftime('%H:%M')}\n"
+                    
+                    if slot.notes:
+                        slot_text += "📝 Notes:\n"
+                        for note in slot.notes:
+                            slot_text += f"  • {note}\n"
+                    
+                    slot_text += "\n"
+                    results_text.insert("end", slot_text)
+                
+            except ValueError:
+                messagebox.showerror(
+                    "Invalid Input",
+                    "Please enter a valid duration in minutes."
+                )
+            except Exception as e:
+                logger.error(f"Error finding meeting times: {e}")
+                messagebox.showerror(
+                    "Error",
+                    f"Failed to find meeting times: {str(e)}"
+                )
+        
+        find_button = ctk.CTkButton(
+            form_frame,
+            text="🔍 Find Available Times",
+            command=find_times,
+            height=32
+        )
+        find_button.pack(pady=10)
+        
+        # Results area
+        results_frame = ctk.CTkFrame(main_frame)
+        results_frame.pack(fill="both", expand=True)
+        
+        results_label = ctk.CTkLabel(
+            results_frame,
+            text="Available Time Slots:",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        results_label.pack(pady=(10, 5))
+        
+        results_text = ctk.CTkTextbox(
+            results_frame,
+            font=ctk.CTkFont(size=12)
+        )
+        results_text.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        
+        # Close button
+        close_button = ctk.CTkButton(
+            main_frame,
+            text="Close",
+            command=suggest_window.destroy,
+            width=100
+        )
+        close_button.pack(pady=(0, 10))
+    
+    def show_time_suggestions_dialog(self, time_slots, meeting_request):
+        """Show dialog with suggested meeting times."""
+        # Create suggestions window
+        suggest_window = ctk.CTkToplevel(self.root)
+        suggest_window.title("Suggested Meeting Times")
+        suggest_window.geometry("600x500")
+        suggest_window.transient(self.root)
+        suggest_window.grab_set()
+        
+        # Main frame
+        main_frame = ctk.CTkFrame(suggest_window)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Title
+        title_label = ctk.CTkLabel(
+            main_frame,
+            text="🤝 Suggested Meeting Times",
+            font=ctk.CTkFont(size=18, weight="bold")
+        )
+        title_label.pack(pady=(10, 20))
+        
+        # Meeting info
+        info_frame = ctk.CTkFrame(main_frame)
+        info_frame.pack(fill="x", pady=(0, 20))
+        
+        ctk.CTkLabel(
+            info_frame,
+            text=f"Meeting: {meeting_request.title}",
+            font=ctk.CTkFont(size=14)
+        ).pack(anchor="w", padx=15, pady=(10, 5))
+        
+        ctk.CTkLabel(
+            info_frame,
+            text=f"Duration: {meeting_request.duration_minutes} minutes",
+            font=ctk.CTkFont(size=12)
+        ).pack(anchor="w", padx=15, pady=2)
+        
+        if meeting_request.attendees:
+            attendees_text = "Attendees: " + ", ".join(meeting_request.attendees)
+            ctk.CTkLabel(
+                info_frame,
+                text=attendees_text,
+                font=ctk.CTkFont(size=12)
+            ).pack(anchor="w", padx=15, pady=2)
+        
+        # Time slots
+        slots_frame = ctk.CTkFrame(main_frame)
+        slots_frame.pack(fill="both", expand=True)
+        
+        for i, slot in enumerate(time_slots, 1):
+            slot_frame = ctk.CTkFrame(slots_frame)
+            slot_frame.pack(fill="x", padx=10, pady=5)
+            
+            # Time and score
+            header_frame = ctk.CTkFrame(slot_frame, fg_color="transparent")
+            header_frame.pack(fill="x", padx=10, pady=(10, 5))
+            
+            time_text = f"Option {i}: {slot.start_time.strftime('%Y-%m-%d %H:%M')} - {slot.end_time.strftime('%H:%M')}"
+            ctk.CTkLabel(
+                header_frame,
+                text=time_text,
+                font=ctk.CTkFont(size=12, weight="bold")
+            ).pack(side="left")
+            
+            score_text = f"Score: {slot.score:.1%}"
+            ctk.CTkLabel(
+                header_frame,
+                text=score_text,
+                font=ctk.CTkFont(size=12)
+            ).pack(side="right")
+            
+            # Notes
+            if slot.notes:
+                notes_frame = ctk.CTkFrame(slot_frame, fg_color="transparent")
+                notes_frame.pack(fill="x", padx=10, pady=(0, 10))
+                
+                for note in slot.notes:
+                    ctk.CTkLabel(
+                        notes_frame,
+                        text=f"• {note}",
+                        font=ctk.CTkFont(size=11),
+                        text_color="#888888"
+                    ).pack(anchor="w")
+            
+            # Schedule button
+            def create_schedule_command(slot=slot):
+                return lambda: self.schedule_meeting(meeting_request, slot, suggest_window)
+            
+            schedule_btn = ctk.CTkButton(
+                slot_frame,
+                text="📅 Schedule",
+                command=create_schedule_command(slot),
+                width=100,
+                height=28
+            )
+            schedule_btn.pack(pady=(0, 10))
+        
+        # Close button
+        close_button = ctk.CTkButton(
+            main_frame,
+            text="Close",
+            command=suggest_window.destroy,
+            width=100
+        )
+        close_button.pack(pady=(20, 10))
+    
+    def show_optimization_dialog(self, suggestions):
+        """Show dialog with calendar optimization suggestions."""
+        # Create optimization window
+        optimize_window = ctk.CTkToplevel(self.root)
+        optimize_window.title("Calendar Optimization")
+        optimize_window.geometry("600x500")
+        optimize_window.transient(self.root)
+        optimize_window.grab_set()
+        
+        # Main frame
+        main_frame = ctk.CTkFrame(optimize_window)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Title
+        title_label = ctk.CTkLabel(
+            main_frame,
+            text="✨ Calendar Optimization Suggestions",
+            font=ctk.CTkFont(size=18, weight="bold")
+        )
+        title_label.pack(pady=(10, 20))
+        
+        # Suggestions list
+        suggestions_frame = ctk.CTkFrame(main_frame)
+        suggestions_frame.pack(fill="both", expand=True)
+        
+        for suggestion in suggestions:
+            sug_frame = ctk.CTkFrame(suggestions_frame)
+            sug_frame.pack(fill="x", padx=10, pady=5)
+            
+            # Severity indicator
+            severity_emoji = {
+                'high': '🔴',
+                'medium': '🟡',
+                'low': '🟢'
+            }.get(suggestion['severity'], '⚪')
+            
+            header_frame = ctk.CTkFrame(sug_frame, fg_color="transparent")
+            header_frame.pack(fill="x", padx=10, pady=(10, 5))
+            
+            ctk.CTkLabel(
+                header_frame,
+                text=f"{severity_emoji} {suggestion['type'].replace('_', ' ').title()}",
+                font=ctk.CTkFont(size=12, weight="bold")
+            ).pack(side="left")
+            
+            if suggestion.get('date'):
+                ctk.CTkLabel(
+                    header_frame,
+                    text=str(suggestion['date']),
+                    font=ctk.CTkFont(size=12)
+                ).pack(side="right")
+            
+            # Message
+            message_frame = ctk.CTkFrame(sug_frame, fg_color="transparent")
+            message_frame.pack(fill="x", padx=10, pady=(0, 10))
+            
+            ctk.CTkLabel(
+                message_frame,
+                text=suggestion['message'],
+                font=ctk.CTkFont(size=11),
+                wraplength=500
+            ).pack(anchor="w")
+        
+        # Close button
+        close_button = ctk.CTkButton(
+            main_frame,
+            text="Close",
+            command=optimize_window.destroy,
+            width=100
+        )
+        close_button.pack(pady=(20, 10))
+    
+    def schedule_meeting(self, meeting_request, time_slot, parent_window):
+        """Schedule a meeting at the selected time slot."""
+        try:
+            # Create the event
+            event_id = self.smart_scheduler.calendar_service.create_event(
+                title=meeting_request.title,
+                start_time=time_slot.start_time,
+                end_time=time_slot.end_time,
+                description=meeting_request.description,
+                location=meeting_request.location,
+                attendees=meeting_request.attendees
+            )
+            
+            if event_id:
+                messagebox.showinfo(
+                    "Success",
+                    "Meeting scheduled successfully!"
+                )
+                parent_window.destroy()
+                self.refresh_calendar()
+            else:
+                messagebox.showerror(
+                    "Error",
+                    "Failed to schedule meeting. Please try again."
+                )
+                
+        except Exception as e:
+            logger.error(f"Error scheduling meeting: {e}")
+            messagebox.showerror(
+                "Error",
+                f"Failed to schedule meeting: {str(e)}"
+            )
     
     def setup_status_bar(self):
         """Setup the status bar at the bottom."""
@@ -1064,6 +2158,288 @@ class EmailManagerApp:
                 self.root.after(0, lambda: self.show_quick_reply_window(email_data, f"Error generating draft: {str(e)}"))
         
         threading.Thread(target=generate_reply_thread, daemon=True).start()
+    
+    def create_new_meeting(self):
+        """Show dialog to create a new calendar meeting."""
+        # Create meeting window
+        meeting_window = ctk.CTkToplevel(self.root)
+        meeting_window.title("Create New Meeting")
+        meeting_window.geometry("600x700")
+        meeting_window.transient(self.root)
+        meeting_window.grab_set()
+        
+        # Main frame
+        main_frame = ctk.CTkFrame(meeting_window)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Title
+        title_label = ctk.CTkLabel(
+            main_frame,
+            text="📅 Create New Meeting",
+            font=ctk.CTkFont(size=18, weight="bold")
+        )
+        title_label.pack(pady=(10, 20))
+        
+        # Meeting details form
+        form_frame = ctk.CTkFrame(main_frame)
+        form_frame.pack(fill="x", pady=(0, 20))
+        
+        # Title field
+        title_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        title_frame.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(
+            title_frame,
+            text="Title:",
+            font=ctk.CTkFont(weight="bold"),
+            width=100
+        ).pack(side="left")
+        
+        title_entry = ctk.CTkEntry(
+            title_frame,
+            width=400
+        )
+        title_entry.pack(side="left", padx=(10, 0), fill="x", expand=True)
+        
+        # Date field
+        date_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        date_frame.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(
+            date_frame,
+            text="Date:",
+            font=ctk.CTkFont(weight="bold"),
+            width=100
+        ).pack(side="left")
+        
+        date_entry = ctk.CTkEntry(
+            date_frame,
+            placeholder_text="YYYY-MM-DD",
+            width=150
+        )
+        date_entry.pack(side="left", padx=(10, 0))
+        
+        # Time fields
+        time_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        time_frame.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(
+            time_frame,
+            text="Time:",
+            font=ctk.CTkFont(weight="bold"),
+            width=100
+        ).pack(side="left")
+        
+        start_time_entry = ctk.CTkEntry(
+            time_frame,
+            placeholder_text="HH:MM",
+            width=100
+        )
+        start_time_entry.pack(side="left", padx=(10, 5))
+        
+        ctk.CTkLabel(
+            time_frame,
+            text="to",
+            width=30
+        ).pack(side="left")
+        
+        end_time_entry = ctk.CTkEntry(
+            time_frame,
+            placeholder_text="HH:MM",
+            width=100
+        )
+        end_time_entry.pack(side="left", padx=(5, 0))
+        
+        # Duration (alternative to end time)
+        duration_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        duration_frame.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(
+            duration_frame,
+            text="Duration:",
+            font=ctk.CTkFont(weight="bold"),
+            width=100
+        ).pack(side="left")
+        
+        duration_entry = ctk.CTkEntry(
+            duration_frame,
+            placeholder_text="minutes",
+            width=100
+        )
+        duration_entry.pack(side="left", padx=(10, 0))
+        duration_entry.insert(0, "60")  # Default 1 hour
+        
+        # Location
+        location_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        location_frame.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(
+            location_frame,
+            text="Location:",
+            font=ctk.CTkFont(weight="bold"),
+            width=100
+        ).pack(side="left")
+        
+        location_entry = ctk.CTkEntry(
+            location_frame,
+            width=400
+        )
+        location_entry.pack(side="left", padx=(10, 0), fill="x", expand=True)
+        
+        # Description
+        desc_label = ctk.CTkLabel(
+            form_frame,
+            text="Description:",
+            font=ctk.CTkFont(weight="bold")
+        )
+        desc_label.pack(anchor="w", pady=(10, 5))
+        
+        description_text = ctk.CTkTextbox(
+            form_frame,
+            height=100
+        )
+        description_text.pack(fill="x", pady=(0, 10))
+        
+        # Attendees
+        attendees_label = ctk.CTkLabel(
+            form_frame,
+            text="Attendees (one email per line):",
+            font=ctk.CTkFont(weight="bold")
+        )
+        attendees_label.pack(anchor="w", pady=(10, 5))
+        
+        attendees_text = ctk.CTkTextbox(
+            form_frame,
+            height=100
+        )
+        attendees_text.pack(fill="x", pady=(0, 10))
+        
+        # Meeting options
+        options_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        options_frame.pack(fill="x", pady=10)
+        
+        create_meet = tk.BooleanVar(value=True)
+        meet_checkbox = ctk.CTkCheckBox(
+            options_frame,
+            text="Create Google Meet link",
+            variable=create_meet
+        )
+        meet_checkbox.pack(side="left")
+        
+        send_calendar = tk.BooleanVar(value=True)
+        calendar_checkbox = ctk.CTkCheckBox(
+            options_frame,
+            text="Send calendar invites",
+            variable=send_calendar
+        )
+        calendar_checkbox.pack(side="left", padx=(20, 0))
+        
+        # Action buttons
+        buttons_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        buttons_frame.pack(fill="x", pady=(20, 0))
+        
+        def schedule_meeting():
+            try:
+                # Get form values
+                title = title_entry.get().strip()
+                date = date_entry.get().strip()
+                start_time = start_time_entry.get().strip()
+                end_time = end_time_entry.get().strip()
+                duration = duration_entry.get().strip()
+                location = location_entry.get().strip()
+                description = description_text.get("1.0", "end").strip()
+                attendees = [
+                    email.strip() 
+                    for email in attendees_text.get("1.0", "end").strip().split('\n')
+                    if email.strip()
+                ]
+                
+                # Validate required fields
+                if not title:
+                    messagebox.showerror("Error", "Please enter a meeting title.")
+                    return
+                if not date:
+                    messagebox.showerror("Error", "Please enter a meeting date.")
+                    return
+                if not start_time:
+                    messagebox.showerror("Error", "Please enter a start time.")
+                    return
+                
+                try:
+                    # Parse date and time
+                    start_dt = datetime.strptime(f"{date} {start_time}", "%Y-%m-%d %H:%M")
+                    
+                    if end_time:
+                        end_dt = datetime.strptime(f"{date} {end_time}", "%Y-%m-%d %H:%M")
+                    else:
+                        # Use duration if end time not specified
+                        try:
+                            duration_mins = int(duration)
+                            end_dt = start_dt + timedelta(minutes=duration_mins)
+                        except ValueError:
+                            messagebox.showerror("Error", "Please enter a valid duration in minutes.")
+                            return
+                    
+                    if end_dt <= start_dt:
+                        messagebox.showerror("Error", "End time must be after start time.")
+                        return
+                    
+                except ValueError:
+                    messagebox.showerror("Error", "Invalid date or time format.")
+                    return
+                
+                # Create the event
+                event_id = self.smart_scheduler.calendar_service.create_event(
+                    title=title,
+                    start_time=start_dt,
+                    end_time=end_dt,
+                    description=description,
+                    location=location,
+                    attendees=attendees,
+                    send_updates="all" if send_calendar.get() else "none"
+                )
+                
+                if event_id:
+                    messagebox.showinfo(
+                        "Success",
+                        "Meeting scheduled successfully!"
+                    )
+                    meeting_window.destroy()
+                    self.refresh_calendar()
+                else:
+                    messagebox.showerror(
+                        "Error",
+                        "Failed to schedule meeting. Please try again."
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Error scheduling meeting: {e}")
+                messagebox.showerror(
+                    "Error",
+                    f"Failed to schedule meeting: {str(e)}"
+                )
+        
+        # Schedule button
+        schedule_btn = ctk.CTkButton(
+            buttons_frame,
+            text="📅 Schedule Meeting",
+            command=schedule_meeting,
+            width=150,
+            height=32,
+            fg_color="#2E8B57",
+            hover_color="#3CB371"
+        )
+        schedule_btn.pack(side="left")
+        
+        # Cancel button
+        cancel_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Cancel",
+            command=meeting_window.destroy,
+            width=100,
+            height=32
+        )
+        cancel_btn.pack(side="right")
     
     def show_thread_summary(self):
         """Show AI-generated thread summary."""
